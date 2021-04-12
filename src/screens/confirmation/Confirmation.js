@@ -1,6 +1,10 @@
 import React, { Component } from 'react';
+import ReactDOM from 'react-dom';
 import Header from '../../common/header/Header';
 import './Confirmation.css';
+import BookShow from '../../screens/bookshow/BookShow';
+import Home from '../../screens/home/Home';
+import coupons from '../../common/coupons';
 import Typography from '@material-ui/core/Typography';
 import Input from '@material-ui/core/Input';
 import InputLabel from '@material-ui/core/InputLabel';
@@ -15,7 +19,6 @@ import { withStyles } from '@material-ui/core/styles';
 import PropTypes from 'prop-types';
 import CheckCircleIcon from '@material-ui/icons/CheckCircle';
 import green from '@material-ui/core/colors/green';
-import { Link } from 'react-router-dom';
 
 const styles = theme => ({
   close: {
@@ -34,7 +37,6 @@ class Confirmation extends Component {
 
     this.state = {
       open: false,
-      bookingId: "",
       couponCode: "",
       totalPrice: 0,
       originalTotalPrice: 0
@@ -43,42 +45,20 @@ class Confirmation extends Component {
 
   componentDidMount() {
     let currentState = this.state;
-    currentState.totalPrice = currentState.originalTotalPrice = parseInt(this.props.location.bookingSummary.unitPrice, 10) * parseInt(this.props.location.bookingSummary.tickets.length, 10);
+    currentState.totalPrice = currentState.originalTotalPrice = parseInt(this.props.bookingSummary.unitPrice, 10) * parseInt(this.props.bookingSummary.tickets, 10);
     this.setState({ state: currentState });
   }
 
+  backToBookShowHandler = () => {
+    ReactDOM.render(<BookShow id={this.props.id} bookingSummary={this.props.bookingSummary} />, document.getElementById('root'));
+  }
+
   confirmBookingHandler = () => {
-    let data = JSON.stringify({
-      "customerUuid": sessionStorage.getItem('uuid'),
-      "bookingRequest": {
-        "coupon_code": this.state.couponCode,
-        "show_id": this.props.location.bookingSummary.showId,
-        "tickets": [
-          this.props.location.bookingSummary.tickets.toString()
-        ]
-      }
-    });
-
-    let that = this;
-    let xhr = new XMLHttpRequest();
-
-    xhr.addEventListener("readystatechange", function () {
-      if (this.readyState === 4) {
-        that.setState({ bookingId: JSON.parse(this.responseText).reference_number });
-      }
-    });
-
-    xhr.open("POST", this.props.baseUrl + "bookings");
-    xhr.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem('access-token'));
-    xhr.setRequestHeader("Cache-Control", "no-cache");
-    xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.send(data);
-
     this.setState({ open: true });
   }
 
   snackBarCloseHandler = () => {
-    this.props.history.push("/");
+    ReactDOM.render(<Home />, document.getElementById('root'));
   }
 
   couponCodeChangeHandler = (e) => {
@@ -86,31 +66,18 @@ class Confirmation extends Component {
   }
 
   couponApplyHandler = () => {
-    console.log(this.state.couponCode);
-    let that = this;
-    let data = null;
-    let xhr = new XMLHttpRequest();
+    let currentState = this.state;
+    let couponObj = coupons.filter((coupon) => {
+      return coupon.code === this.state.couponCode
+    })[0];
 
-    xhr.addEventListener("readystatechange", function () {
-      if (this.readyState === 4) {
-        let currentState = that.state;
-
-        let discountValue = JSON.parse(this.responseText).value;
-        if (discountValue !== undefined && discountValue > 0) {
-          currentState.totalPrice = that.state.originalTotalPrice - ((that.state.originalTotalPrice * discountValue) / 100);
-          that.setState({ currentState });
-        } else {
-          currentState.totalPrice = that.state.originalTotalPrice;
-          that.setState({ currentState });
-        }
-      }
-    });
-
-    xhr.open("GET", this.props.baseUrl + "coupons/" + this.state.couponCode);
-    xhr.setRequestHeader("Authorization", "Bearer " + sessionStorage.getItem('access-token'));
-    xhr.setRequestHeader("Cache-Control", "no-cache");
-    xhr.setRequestHeader("Content-Type", "application/json");
-    xhr.send(data);
+    if (couponObj !== undefined && couponObj.value > 0) {
+      currentState.totalPrice = this.state.originalTotalPrice - ((this.state.originalTotalPrice * couponObj.value) / 100);
+      this.setState({ currentState });
+    } else {
+      currentState.totalPrice = this.state.originalTotalPrice;
+      this.setState({ currentState });
+    }
   }
 
   render() {
@@ -122,12 +89,9 @@ class Confirmation extends Component {
 
         <div className="confirmation marginTop16">
           <div>
-            <Link to={"/bookshow/" + this.props.match.params.id}>
-              <Typography className="back" >
-                &#60; Back to Book Show
-                </Typography>
-            </Link>
-            <br />
+            <Typography className="back" onClick={this.backToBookShowHandler}>
+              &#60; Back to Book Show
+            </Typography><br />
 
             <Card className="cardStyle">
               <CardContent>
@@ -141,17 +105,7 @@ class Confirmation extends Component {
                     <Typography>Location:</Typography>
                   </div>
                   <div>
-                    <Typography>{this.props.location.bookingSummary.location}</Typography>
-                  </div>
-                </div>
-                <br />
-
-                <div className="coupon-container">
-                  <div className="confirmLeft">
-                    <Typography>Theatre:</Typography>
-                  </div>
-                  <div>
-                    <Typography>{this.props.location.bookingSummary.theatre}</Typography>
+                    <Typography>{this.props.bookingSummary.location}</Typography>
                   </div>
                 </div>
                 <br />
@@ -161,7 +115,7 @@ class Confirmation extends Component {
                     <Typography>Language:</Typography>
                   </div>
                   <div>
-                    <Typography>{this.props.location.bookingSummary.language}</Typography>
+                    <Typography>{this.props.bookingSummary.language}</Typography>
                   </div>
                 </div>
                 <br />
@@ -171,7 +125,17 @@ class Confirmation extends Component {
                     <Typography>Show Date:</Typography>
                   </div>
                   <div>
-                    <Typography>{this.props.location.bookingSummary.showDate}</Typography>
+                    <Typography>{this.props.bookingSummary.showDate}</Typography>
+                  </div>
+                </div>
+                <br />
+
+                <div className="coupon-container">
+                  <div className="confirmLeft">
+                    <Typography>Show Time:</Typography>
+                  </div>
+                  <div>
+                    <Typography>{this.props.bookingSummary.showTime}</Typography>
                   </div>
                 </div>
                 <br />
@@ -181,7 +145,7 @@ class Confirmation extends Component {
                     <Typography>Tickets:</Typography>
                   </div>
                   <div>
-                    <Typography>{this.props.location.bookingSummary.tickets.toString()}</Typography>
+                    <Typography>{this.props.bookingSummary.tickets}</Typography>
                   </div>
                 </div>
                 <br />
@@ -191,7 +155,7 @@ class Confirmation extends Component {
                     <Typography>Unit Price:</Typography>
                   </div>
                   <div>
-                    <Typography>{this.props.location.bookingSummary.unitPrice}</Typography>
+                    <Typography>{this.props.bookingSummary.unitPrice}</Typography>
                   </div>
                 </div>
                 <br />
@@ -221,7 +185,7 @@ class Confirmation extends Component {
 
                 <Button variant="contained" onClick={this.confirmBookingHandler} color="primary">
                   Confirm Booking
-                  </Button>
+                </Button>
               </CardContent>
             </Card>
           </div>
