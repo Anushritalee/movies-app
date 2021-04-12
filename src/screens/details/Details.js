@@ -1,15 +1,14 @@
 import React, { Component } from 'react';
-import ReactDOM from 'react-dom';
 import Header from '../../common/header/Header';
 import moviesData from '../../common/movieData';
 import Typography from '@material-ui/core/Typography';
 import './Details.css';
-import Home from '../home/Home';
 import YouTube from 'react-youtube';
 import GridList from '@material-ui/core/GridList';
 import GridListTile from '@material-ui/core/GridListTile';
 import GridListTileBar from '@material-ui/core/GridListTileBar';
 import StarBorderIcon from '@material-ui/icons/StarBorder';
+import { Link } from 'react-router-dom';
 
 class Details extends Component {
     constructor() {
@@ -47,17 +46,16 @@ class Details extends Component {
     componentWillMount() {
         let currentState = this.state;
         currentState.movie = moviesData.filter((mov) => {
-            return mov.id === this.props.movieId
+            return mov.id === this.props.match.params.id
         })[0];
+
         this.setState({ currentState });
-        
     }
-    backToHomeHandler = () => {
-        ReactDOM.render(<Home />, document.getElementById('root'));
-    }
+
     artistClickHandler = (url) => {
         window.location = url;
     }
+
     starClickHandler = (id) => {
         let starIconList = [];
         for (let star of this.state.starIcons) {
@@ -85,18 +83,19 @@ class Details extends Component {
         }
         return (
             <div className="details">
-                <Header showBookShowButton="true" />
+                <Header id={this.props.match.params.id} showBookShowButton="true" />
                 <div className="back">
-                    <Typography onClick={this.backToHomeHandler}>
-                        &#60; Back to Home
-                        </Typography>
+                    <Typography>
+                        <Link to="/">  &#60; Back to Home</Link>
+                    </Typography>
                 </div>
                 <div className="flex-containerDetails">
                     <div className="leftDetails">
-                    <img src={movie.poster_url} alt={movie.title} />
+                        <img src={movie.poster_url} alt={movie.title} />
                     </div>
+
                     <div className="middleDetails">
-                    <div>
+                        <div>
                             <Typography variant="headline" component="h2">{movie.title} </Typography>
                         </div>
                         <br />
@@ -128,8 +127,9 @@ class Details extends Component {
                             />
                         </div>
                     </div>
+
                     <div className="rightDetails">
-                    <Typography>
+                        <Typography>
                             <span className="bold">Rate this movie: </span>
                         </Typography>
                         {this.state.starIcons.map(star => (
@@ -140,7 +140,7 @@ class Details extends Component {
                             />
                         ))}
 
-                    <div className="bold marginBottom16 marginTop16">
+                        <div className="bold marginBottom16 marginTop16">
                             <Typography>
                                 <span className="bold">Artists:</span>
                             </Typography>
